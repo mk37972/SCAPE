@@ -4,9 +4,7 @@ import sys
 import re
 import multiprocessing
 import os.path as osp
-import gym
-import mj_envs
-from mjrl.utils.gym_env import GymEnv
+import modified_gym
 from collections import defaultdict
 import tensorflow as tf
 from tfdeterminism import patch
@@ -40,7 +38,7 @@ except ImportError:
     roboschool = None
 
 _game_envs = defaultdict(set)
-for env in gym.envs.registry.all():
+for env in modified_gym.envs.registry.all():
     # TODO: solve this with regexes
     env_type = env.entry_point.split(':')[0].split('.')[-1]
     _game_envs[env_type].add(env.id)
@@ -61,13 +59,9 @@ _game_envs['retro'] = {
 
 
 def train(args, extra_args):
-    if args.env.find('NuFingers_Experiment') == -1:
-        env_type, env_id = get_env_type(args)
-        alg_kwargs = get_learn_function_defaults(args.alg, env_type)
-        print('env_type: {}'.format(env_type))
-    else:
-        try: alg_kwargs = {'demo_file': extra_args['demo_file'], 'pert_type': args.perturb, 'n_actions': args.algdim, 'network': 'mlp'}
-        except: alg_kwargs = {'pert_type': args.perturb, 'n_actions': args.algdim, 'network': 'mlp'}
+    env_type, env_id = get_env_type(args)
+    alg_kwargs = get_learn_function_defaults(args.alg, env_type)
+    print('env_type: {}'.format(env_type))
 
     total_timesteps = int(args.num_timesteps)
     seed = args.seed
@@ -77,16 +71,10 @@ def train(args, extra_args):
     extra_args['pert_type'] = args.perturb
     extra_args['n_actions'] = args.algdim
     alg_kwargs.update(extra_args)
-    
-    
-    env = None
-    if args.env.find('NuFingers_Experiment') == -1:
-        env = build_env(args)
-        if args.save_video_interval != 0:
-            env = VecVideoRecorder(env, osp.join(logger.get_dir(), "videos"), record_video_trigger=lambda x: x % args.save_video_interval == 0, video_length=args.save_video_length)
-        print('Training {} on {}:{} with arguments \n{}'.format(args.alg, env_type, env_id, alg_kwargs))
-    else:
-        print('Training NuFingers using {} with arguments \n{}'.format(args.alg, alg_kwargs))
+    env = build_env(args)
+    if args.save_video_interval != 0:
+        env = VecVideoRecorder(env, osp.join(logger.get_dir(), "videos"), record_video_trigger=lambda x: x % args.save_video_interval == 0, video_length=args.save_video_length)
+    print('Training {} on {}:{} with arguments \n{}'.format(args.alg, env_type, env_id, alg_kwargs))
 
     if args.network:
         alg_kwargs['network'] = args.network
@@ -147,9 +135,10 @@ def get_env_type(args):
         return args.env_type, env_id
 
     # Re-parse the gym registry, since we could have new envs since last time.
-    for env in gym.envs.registry.all():
+    for env in modified_gym.envs.registry.all():
         env_type = env.entry_point.split(':')[0].split('.')[-1]
         _game_envs[env_type].add(env.id)  # This is a set so add is idempotent
+        
 
     if env_id in _game_envs.keys():
         env_type = env_id
@@ -163,7 +152,6 @@ def get_env_type(args):
         if ':' in env_id:
             env_type = re.sub(r':.*', '', env_id)
         assert env_type is not None, 'env_id {} is not recognized in env types'.format(env_id, _game_envs.keys())
-
     return env_type, env_id
 
 
@@ -223,7 +211,6 @@ def configure_logger(log_path, **kwargs):
 
 def main(args):
     # configure logger, disable logging in child MPI processes (with rank > 0)
-
     arg_parser = common_arg_parser()
     args, unknown_args = arg_parser.parse_known_args(args)
     extra_args = parse_cmdline_kwargs(unknown_args)

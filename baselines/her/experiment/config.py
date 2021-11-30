@@ -1,6 +1,6 @@
 import os
 import numpy as np
-import gym
+import modified_gym
 
 from baselines import logger
 from baselines.her.ddpg import DDPG
@@ -75,34 +75,31 @@ def prepare_params(kwargs):
     env_kwargs = dict(pert_type=kwargs['perturb'], n_actions=kwargs['n_actions'])
     ddpg_params = dict()
     
-    try:
-        env_name = kwargs['env_name']
-        
-        def make_env(subrank=None):
-            env = gym.make(env_name, **env_kwargs)
-            if subrank is not None and logger.get_dir() is not None:
-                try:
-                    from mpi4py import MPI
-                    mpi_rank = MPI.COMM_WORLD.Get_rank()
-                except ImportError:
-                    MPI = None
-                    mpi_rank = 0
-                    logger.warn('Running with a single MPI process. This should work, but the results may differ from the ones publshed in Plappert et al.')
+    env_name = kwargs['env_name']
     
-                max_episode_steps = env._max_episode_steps
-                env =  Monitor(env,
-                               os.path.join(logger.get_dir(), str(mpi_rank) + '.' + str(subrank)),
-                               allow_early_resets=True)
-                # hack to re-expose _max_episode_steps (ideally should replace reliance on it downstream)
-                env = gym.wrappers.TimeLimit(env, max_episode_steps=max_episode_steps)
-            return env
-    
-        kwargs['make_env'] = make_env
-        tmp_env = cached_make_env(kwargs['make_env'])
-        assert hasattr(tmp_env, '_max_episode_steps')
-        kwargs['T'] = tmp_env._max_episode_steps
-    except:
-        kwargs['T'] = 75
+    def make_env(subrank=None):
+        env = modified_gym.make(env_name, **env_kwargs)
+        if subrank is not None and logger.get_dir() is not None:
+            try:
+                from mpi4py import MPI
+                mpi_rank = MPI.COMM_WORLD.Get_rank()
+            except ImportError:
+                MPI = None
+                mpi_rank = 0
+                logger.warn('Running with a single MPI process. This should work, but the results may differ from the ones publshed in Plappert et al.')
+
+            max_episode_steps = env._max_episode_steps
+            env =  Monitor(env,
+                           os.path.join(logger.get_dir(), str(mpi_rank) + '.' + str(subrank)),
+                           allow_early_resets=True)
+            # hack to re-expose _max_episode_steps (ideally should replace reliance on it downstream)
+            env = modified_gym.wrappers.TimeLimit(env, max_episode_steps=max_episode_steps)
+        return env
+
+    kwargs['make_env'] = make_env
+    tmp_env = cached_make_env(kwargs['make_env'])
+    assert hasattr(tmp_env, '_max_episode_steps')
+    kwargs['T'] = tmp_env._max_episode_steps
 
     kwargs['max_u'] = np.array(kwargs['max_u']) if isinstance(kwargs['max_u'], list) else kwargs['max_u']
     kwargs['gamma'] = 1. - 1. / kwargs['T']
@@ -132,26 +129,12 @@ def log_params(params, logger=logger):
 
 
 def configure_her(params):
-    try:
-        env = cached_make_env(params['make_env'])
-        env.reset()
-    
-        def reward_fun(ag_2, g, info):  # vectorized
-            return env.compute_reward(achieved_goal=ag_2, desired_goal=g, info=info)
-    except:
-        def reward_fun(ag_2, g, info):  # vectorized
-            achieved_goal=ag_2
-            desired_goal=g
-            info=info
-            try: 
-                d = np.linalg.norm(achieved_goal[:,0:1] - desired_goal[:,0:1], axis=-1)
-                fragile_goal = 1.0 * np.linalg.norm((achieved_goal[:,1:5] - desired_goal[:,1:5]), axis=-1) + 4.0 * np.linalg.norm((achieved_goal[:,5:] - desired_goal[:,5:])*((achieved_goal[:,5:] - desired_goal[:,5:]) < 0), axis=-1)
-            except:
-                d = np.linalg.norm(achieved_goal[0:1] - desired_goal[0:1], axis=-1)
-                fragile_goal = 1.0 * np.linalg.norm((achieved_goal[1:5] - desired_goal[1:5]), axis=-1) + 4.0 * np.linalg.norm((achieved_goal[5:] - desired_goal[5:])*((achieved_goal[5:] - desired_goal[5:]) < 0), axis=-1)
-            return -(d > np.pi/32).astype(np.float32) - np.float32(fragile_goal)*0.
-            
+    env = cached_make_env(params['make_env'])
+    env.reset()
 
+    def reward_fun(ag_2, g, info):  # vectorized
+        return env.compute_reward(achieved_goal=ag_2, desired_goal=g, info=info)
+    
     # Prepare configuration for HER.
     her_params = {
         'reward_fun': reward_fun,
@@ -201,9 +184,7 @@ def configure_ddpg(dims, params, reuse=False, use_mpi=True, clip_return=True):
         'env_name': params['env_name'],
     }
     try: policy = DDPG(reuse=reuse, **ddpg_params, use_mpi=use_mpi)
-    except: 
-        
-        policy = DDPG(reuse=True, **ddpg_params, use_mpi=use_mpi)
+    except: policy = DDPG(reuse=True, **ddpg_params, use_mpi=use_mpi)
     return policy
 
 

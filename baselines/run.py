@@ -247,14 +247,7 @@ def main(args):
         episodeFor = []
         episodeDis = []
         
-        # actions_list = []
-        # obs_list =[]
-        # infos_list = []
-        # episodeAct = []
-        # episodeObs = []
-        # episodeInfo = []
         max_force = 0
-        max_acc = 0
         for k in range(50000):
             if state is not None:
                 actions, _, state, _ = model.step(obs,S=state, M=dones)
@@ -262,36 +255,22 @@ def main(args):
                 actions, _, _, _ = model.step(obs)
                 
                 
-            if args.env == 'NuFingersRotate-v1' or args.env == 'NuFingersRotate-v2':
+            if args.env == 'NuFingers-v1' or args.env == 'NuFingers-v2':
                 distance = np.linalg.norm(obs['achieved_goal'][0][:1] - obs['desired_goal'][0][:1])
                 force = - env.envs[0].env.prev_lforce- env.envs[0].env.prev_rforce
-            elif args.env == 'relocate-v0':
-                distance = np.linalg.norm(obs['achieved_goal'][0][6:9] - obs['desired_goal'][0][6:9])
-                force = - env.envs[0].env.prev_lforce- env.envs[0].env.prev_rforce
-            elif args.env == 'CheolFingersDark-v1':
-                distance = np.linalg.norm(np.array([env.envs[0].env.sim.data.get_body_xpos('object2')[1]+0.0635 - env.envs[0].env.goal[1], env.envs[0].env.sim.data.get_body_xpos('object2')[0]-0.0873 - env.envs[0].env.goal[2]]))
-                force = env.envs[0].env.prev_oforce
             else: 
                 distance = np.linalg.norm(obs['achieved_goal'][0][:3] - obs['desired_goal'][0][:3])
-                if args.env == 'FetchPickAndPlaceFragile-v1' or args.env == 'FetchPickAndPlaceFragile-v5':
+                if args.env == 'Block-v1' or args.env == 'Block-v2':
                     force = - env.envs[0].env.prev_lforce- env.envs[0].env.prev_rforce
-                elif args.env == 'FetchPickAndPlaceFragile-v2' or args.env == 'FetchPickAndPlaceFragile-v6':
+                elif args.env == 'Chip-v1' or args.env == 'Chip-v2':
                     force = env.envs[0].env.prev_oforce
-                elif args.env == 'FetchPickAndPlaceFragile-v3':
-                    force = - env.envs[0].env.prev_lforce- env.envs[0].env.prev_rforce
-                    acc = np.sqrt(env.envs[0].env.obj_acc*env.envs[0].env.obj_acc)
             
             obs, rew, done, info = env.step(actions)
-            # episodeInfo.append(info[0])
-            # episodeAct.append(actions[0])
-            # episodeObs.append(dict(observation=obs['observation'][0],
-            #                        achieved_goal=obs['achieved_goal'][0],
-            #                        desired_goal=obs['desired_goal'][0]))
+            
             episode_rew += rew
             if args.filename is None: env.render()
             done_any = done.any() if isinstance(done, np.ndarray) else done
             if force > max_force: max_force = force
-            # if acc > max_acc: max_acc = acc
             
             episodeFor.append(force)
             episodeDis.append(distance)
@@ -302,34 +281,18 @@ def main(args):
                     episode_rew[i] = 0
                 if args.filename is None:
                     print("Maximum force in the episode: {}".format(max_force))
-                    print("Maximum acceleration of the object: {}".format(max_acc))
                     max_force = 0
-                    max_acc = 0
                 
                 forces_list.append(episodeFor)
                 distance_list.append(episodeDis)
                 episodeFor = []
                 episodeDis = []
                 
-                # actions_list.append(episodeAct)
-                # obs_list.append(episodeObs)
-                # infos_list.append(episodeInfo)
-                # episodeInfo = []
-                # episodeAct = []
-                # episodeObs = []
-                
                 seed += 1000
                 np.random.seed(seed)
                 set_global_seeds(seed)
                 
         
-                    
-#        fileName = "StiffnessCtrl_Demo"
-#        fileName += "_" + "random"
-#        fileName += "_" + str(1000)
-#        fileName += ".npz"
-    
-#        np.savez_compressed(fileName, acs=actions_list, obs=obs_list, info=infos_list) # save the file
         if args.filename is not None: 
             fileName = args.filename
             fileName += ".npz"

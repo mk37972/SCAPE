@@ -73,7 +73,8 @@ class DDPG(object):
         self.dimu = self.input_dims['u']
         
         self.success_rate = 0
-        self.success_ref = 0.65
+        if self.dimo == 14: self.success_ref = 0.85
+        else: self.success_ref = 0.65
         self.stats_qf = []
         
         # Prepare staging area for feeding data to the model.
@@ -271,22 +272,13 @@ class DDPG(object):
         
         if self.bc_loss: #use demonstration buffer to sample as well if bc_loss flag is set TRUE
             transitions =  self.buffer.sample(self.batch_size - self.demo_batch_size)
-            num_self_imitation = self.demo_batch_size # 0
-            if num_self_imitation > 0:
-                transitions_demo_self = self.buffer.sample(num_self_imitation)
-                for k, values in transitions_demo_self.items():
-                    rolloutV = transitions[k].tolist()
-                    for v in values:
-                        rolloutV.append(v.tolist())
-                    transitions[k] = np.array(rolloutV)
-            if self.demo_batch_size > num_self_imitation:
-                global DEMO_BUFFER
-                transitions_demo = DEMO_BUFFER.sample(self.demo_batch_size - num_self_imitation)
-                for k, values in transitions_demo.items():
-                    rolloutV = transitions[k].tolist()
-                    for v in values:
-                        rolloutV.append(v.tolist())
-                    transitions[k] = np.array(rolloutV)
+            global DEMO_BUFFER
+            transitions_demo = DEMO_BUFFER.sample(self.demo_batch_size)
+            for k, values in transitions_demo.items():
+                rolloutV = transitions[k].tolist()
+                for v in values:
+                    rolloutV.append(v.tolist())
+                transitions[k] = np.array(rolloutV)
         else:
             transitions = self.buffer.sample(self.batch_size) #otherwise only sample from primary buffer
 

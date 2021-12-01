@@ -81,47 +81,32 @@ class RolloutWorker:
             if self.compute_Q:
                 u, Q = policy_output
                 Qs.append(Q)
-                if self.venv.envs[0].env.spec.id == 'FetchPickAndPlaceFragile-v1': # block
+                if self.venv.envs[0].env.spec.id == 'Block-v1': # block
                     Fs.append(np.abs(np.float32((o[:,11:13] * (o[:,11:13] < 0.0)).sum(axis=-1))).mean()*self.venv.envs[0].env.max_stiffness*4.0)
                     if self.venv.envs[0].env.action_space.shape[0] == 6:
                         Ks.append(np.float32(o[:,13]*self.venv.envs[0].env.max_stiffness*4.0).mean())
                     else:
                         Ks.append(self.venv.envs[0].env.max_stiffness)
-                elif self.venv.envs[0].env.spec.id == 'FetchPickAndPlaceFragile-v5': # For IM
+                elif self.venv.envs[0].env.spec.id == 'Block-v2': # For IM
                     Fs.append(np.abs(np.float32((o[:,11:13] * (o[:,11:13] < 0.0)).sum(axis=-1))).mean()*self.venv.envs[0].env.max_stiffness*4.0)
                     Ks.append(np.float32(self.venv.envs[0].env.prev_stiffness).mean())
-                elif self.venv.envs[0].env.spec.id == 'FetchPickAndPlaceFragile-v2': # chip
+                elif self.venv.envs[0].env.spec.id == 'Chip-v1': # chip
                     Fs.append(np.abs(np.float32([e.env.prev_oforce for e in self.venv.envs])).mean())
                     if self.venv.envs[0].env.action_space.shape[0] == 5:
                         Ks.append(np.float32(o[:,14]*self.venv.envs[0].env.max_stiffness*2.0).mean())
                     else:
                         Ks.append(50)
-                elif self.venv.envs[0].env.spec.id == 'FetchPickAndPlaceFragile-v6': # For IM (Chip)
+                elif self.venv.envs[0].env.spec.id == 'Chip-v2': # For IM (Chip)
                     Fs.append(np.abs(np.float32([e.env.prev_oforce for e in self.venv.envs])).mean())
                     Ks.append(np.float32(self.venv.envs[0].env.prev_stiffness).mean())
-                elif self.venv.envs[0].env.spec.id == 'FetchPickAndPlaceFragile-v3': # animate
-                    Fs.append(np.abs(np.float32((o[:,11:13] * (o[:,11:13] < 0.0)).sum(axis=-1))).mean()*self.venv.envs[0].env.max_stiffness*4.0*self.venv.envs[0].env.object_fragility/350)
-                    if self.venv.envs[0].env.action_space.shape[0] == 6:
-                        Ks.append(np.float32(o[:,14]*self.venv.envs[0].env.max_stiffness*4.0).mean())
-                    else:
-                        Ks.append(self.venv.envs[0].env.max_stiffness)
-                elif self.venv.envs[0].env.spec.id == 'FetchPickAndPlaceFragile-v4': # liquid
-                    Fs.append(np.abs(np.float32((o[:,11:13] * (o[:,11:13] < 0.0)).sum(axis=-1))).mean()*self.venv.envs[0].env.max_stiffness*4.0)
-                    if self.venv.envs[0].env.action_space.shape[0] == 6:
-                        Ks.append(np.float32(o[:,13]*self.venv.envs[0].env.max_stiffness*4.0).mean())
-                    else:
-                        Ks.append(self.venv.envs[0].env.max_stiffness)
-                elif self.venv.envs[0].env.spec.id == 'NuFingersRotate-v1': # NuFingers
+                elif self.venv.envs[0].env.spec.id == 'NuFingers-v1': # NuFingers
                     Fs.append(np.abs(np.float32((o[:,7:9] * (o[:,7:9] < 0.0)).sum(axis=-1))).mean())
                     if self.venv.envs[0].env.action_space.shape[0] == 4:
                         Ks.append(np.float32(o[:,13]).mean())
                     else:
                         Ks.append(1.0)
-                elif self.venv.envs[0].env.spec.id == 'NuFingersRotate-v2': # NuFingers_IM
+                elif self.venv.envs[0].env.spec.id == 'NuFingers-v2': # NuFingers_IM
                     Fs.append(np.abs(np.float32((o[:,7:9] * (o[:,7:9] < 0.0)).sum(axis=-1))).mean())
-                    Ks.append(np.float32(self.venv.envs[0].env.prev_stiffness).mean())
-                elif self.venv.envs[0].env.spec.id == 'CheolFingersDark-v1': # Cheol Fingers Dark Env
-                    Fs.append(np.float32(self.venv.envs[0].env.prev_oforce).mean())
                     Ks.append(np.float32(self.venv.envs[0].env.prev_stiffness).mean())
             else: u = policy_output
             if u.ndim == 1:
@@ -140,24 +125,18 @@ class RolloutWorker:
             ag_new = obs_dict_new['achieved_goal']
             success = np.array([i.get('is_success', 0.0) for i in info])
             
-            if self.venv.envs[0].env.spec.id == 'FetchPickAndPlaceFragile-v1': # block
+            if self.venv.envs[0].env.spec.id == 'Block-v1': # block
                 success2 = (np.float32(o[:,11:13].sum(axis=-1))*self.venv.envs[0].env.max_stiffness*4.0 > -self.venv.envs[0].env.object_fragility)
-            elif self.venv.envs[0].env.spec.id == 'FetchPickAndPlaceFragile-v5': # For IM
+            elif self.venv.envs[0].env.spec.id == 'Block-v2': # For IM
                 success2 = (np.float32(o[:,11:13].sum(axis=-1))*self.venv.envs[0].env.max_stiffness*4.0 > -self.venv.envs[0].env.object_fragility)
-            elif self.venv.envs[0].env.spec.id == 'FetchPickAndPlaceFragile-v2': # chip
+            elif self.venv.envs[0].env.spec.id == 'Chip-v1': # chip
                 success2 = (np.float32(self.venv.envs[0].env.prev_oforce < self.venv.envs[0].env.object_fragility))
-            elif self.venv.envs[0].env.spec.id == 'FetchPickAndPlaceFragile-v6': # For IM (chip)
+            elif self.venv.envs[0].env.spec.id == 'Chip-v2': # For IM (chip)
                 success2 = (np.float32(self.venv.envs[0].env.prev_oforce < self.venv.envs[0].env.object_fragility))
-            elif self.venv.envs[0].env.spec.id == 'FetchPickAndPlaceFragile-v3': # animate
-                success2 = (np.float32(o[:,11:13].sum(axis=-1))*self.venv.envs[0].env.max_stiffness*4.0 > -self.venv.envs[0].env.object_fragility)
-            elif self.venv.envs[0].env.spec.id == 'FetchPickAndPlaceFragile-v4': # liquid
-                success2 = (np.float32(o[:,11:13].sum(axis=-1))*self.venv.envs[0].env.max_stiffness*4.0 > -self.venv.envs[0].env.object_fragility)
-            elif self.venv.envs[0].env.spec.id == 'NuFingersRotate-v1':
+            elif self.venv.envs[0].env.spec.id == 'NuFingers-v1':
                 success2 = (np.float32(o[:,7:9].sum(axis=-1)) > -0.45)
-            elif self.venv.envs[0].env.spec.id == 'NuFingersRotate-v2':
+            elif self.venv.envs[0].env.spec.id == 'NuFingers-v2':
                 success2 = (np.float32(o[:,7:9].sum(axis=-1)) > -0.45)
-            elif self.venv.envs[0].env.spec.id == 'CheolFingersDark-v1':
-                success2 = (np.float32(o[:,7:9].sum(axis=-1)) > 5)
             
             if any(done):
                 # here we assume all environments are done is ~same number of steps, so we terminate rollouts whenever any of the envs returns done
@@ -218,8 +197,8 @@ class RolloutWorker:
         """Clears all histories that are used for statistics
         """
         self.success_history.clear()
-        # self.success_history2.clear()
-        # self.success_history3.clear()
+        self.success_history2.clear()
+        self.success_history3.clear()
         self.Q_history.clear()
         self.F_history.clear()
         self.K_history.clear()

@@ -1,6 +1,10 @@
 # SCAPE
 Learning Stiffness Control from Augmented Position control Experiences (SCAPE)
 
+[Link to arXiv](https://arxiv.org/abs/2102.08442)
+
+[Link to OpenReview](https://openreview.net/forum?id=L0tXWRrB9yw)
+
 ## Requirements
 1. mpi4py
 2. tensorflow + tensorflow-determinism (if reproducibility is needed)
@@ -29,3 +33,13 @@ Run train_exp.py to train the agent.
 The results in the paper are produced using 8 processors in parallel. (i.e., mpiexec -n 8 python train_exp.py)
 
 The hybrid approach requires the user to run the first stage first, and then move onto the second stage.
+
+If you find this code useful, please consider citing:
+```
+@article{kim2021scape,
+  title={SCAPE: Learning Stiffness Control from Augmented Position Control Experiences},
+  author={Kim, Mincheol and Niekum, Scott and Deshpande, Ashish D},
+  journal={arXiv preprint arXiv:2102.08442},
+  year={2021}
+}
+```

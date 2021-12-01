@@ -10,7 +10,7 @@ Learning Stiffness Control from Augmented Position control Experiences (SCAPE)
 2. tensorflow + tensorflow-determinism (if reproducibility is needed)
 
 ## Instructions
-Uncomment the desired experiment in train_exp.py.
+1. Uncomment the desired experiment in train_exp.py.
 
 For example, to run Block (Position control approach), uncomment only:
 ```
@@ -27,20 +27,20 @@ for dim in [4]:
         
         run.main(finalargs)
 ```
-Run train_exp.py to train the agent.
+2. Run train_exp.py to train the agent.
 ```
 python train_exp.py
 ```
 
 ## Notes
-The results in the paper are produced using 8 processors in parallel:
+1. The results in the paper are produced using 8 processors in parallel:
 ```
 mpiexec -n 8 python train_exp.py
 ```
 
-The hybrid approach requires the user to run the first stage first, and then move onto the second stage.
+2. The hybrid approach requires the user to run the first stage first, and then move onto the second stage.
 
-If you find this code useful, please consider citing:
+3. If you find this code useful, please consider citing:
 ```
 @article{kim2021scape,
   title={SCAPE: Learning Stiffness Control from Augmented Position Control Experiences},

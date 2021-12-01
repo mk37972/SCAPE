@@ -28,9 +28,15 @@ for dim in [4]:
         run.main(finalargs)
 ```
 Run train_exp.py to train the agent.
+```
+python train_exp.py
+```
 
 ## Notes
-The results in the paper are produced using 8 processors in parallel. (i.e., mpiexec -n 8 python train_exp.py)
+The results in the paper are produced using 8 processors in parallel:
+```
+mpiexec -n 8 python train_exp.py
+```
 
 The hybrid approach requires the user to run the first stage first, and then move onto the second stage.
 

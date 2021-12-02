@@ -174,13 +174,11 @@ def learn(*, network, env, total_timesteps,
     if demo_file is not None:
         params['bc_loss'] = 1
         params['q_filter'] = 1
-        params['n_cycles'] = 50
+        params['n_cycles'] = 20
         params['random_eps'] = 0.1 # chip,block: 0.1
         params['noise_eps'] = 0.1 # chip,block: 0.1
-        # params['prm_loss_weight'] = 0
-        # params['aux_loss_weight'] = 1
-        # params['demo_batch_size'] = 256
-        # params['batch_size']: 1024
+        params['demo_batch_size'] = 128
+        params['batch_size']: 1024
     params = config.prepare_params(params)
     params['rollout_batch_size'] = 1
     params.update(kwargs)
@@ -199,13 +197,7 @@ def learn(*, network, env, total_timesteps,
         logger.warn('****************')
         logger.warn()
 
-    if env is not None:
-        dims = config.configure_dims(params)
-    else:
-        dims = dict(o = 11 + kwargs['n_actions'],
-                    u = kwargs['n_actions'],
-                    g = 7,
-                    info_is_success = 1)
+    dims = config.configure_dims(params)
     policy = config.configure_ddpg(dims=dims, params=params, clip_return=clip_return)
     if load_path is not None:
         tf_util.load_variables(load_path)
